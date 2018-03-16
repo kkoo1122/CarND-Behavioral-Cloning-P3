@@ -96,7 +96,9 @@ Based on the above assumption, we can estimate the x and y coordinates of the ob
 </table>
 
 After math reduction, we get a quite simple transformation formula for mapping camera shift -0.9M, which map left camera view to center view.
+
 <img src="./examples/eq1.png">
+
 , where x, and y are the x- and y-coordinates in the captured view image, which range from (0, 0) to (300, 160). Parameter &alpha; is found the linear regresssion fitting the above landmarks.  The &alpha; is found as 0.72. 
 
 The following gives the examples to apply these formula to map the left and right camera view to the center camera position.
@@ -164,18 +166,8 @@ The following shows the cropped results.
 <td><center>after cropped and resized</center></td>
 </tr>
 </table>
- 
 
-<table border="1">
-<tr>
-<td><img src="./examples/bias_hist.png" width="400"/></td>
-<td><img src="./examples/balance_hist.png" width="400"/></td>
-</tr>
-<tr>
-<td><center>before data balance</center></td>
-<td><center>after data balance</center></td>
-</tr>
-</table>
+
 
 ### Model Architecture and Training Strategy
 
