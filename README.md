@@ -95,24 +95,22 @@ Based on the above assumption, we can estimate the x and y coordinates of the ob
 
 After math reduction, we get a quite simple transformation formula for mapping camera shift -0.9M, which map left camera view to center view.
 
-$$
-x_{new} = \left \{
+$x_{new} = \left \{
   \begin{tabular}{cl}
   1.2 x - 30, & for y > 60 \\
   don't care, &  otherwises
   \end{tabular}
-$$
+$
 , where x, and y are the x- and y-coordinates in the captured view image, which range from (0, 0) to (300, 160).
 
 Similarly, the formula for mapping camera shift 0.9M, which map right camera view to center view.
 
-$$
-x_{new} = \left \{
+$x_{new} = \left \{
   \begin{tabular}{cl}
   (x + 30) / 1.2, & for y > 60 \\
   don't care, &  otherwises
   \end{tabular}
-$$
+$
 
 
 ## Data Preprocessig and Augmenting
