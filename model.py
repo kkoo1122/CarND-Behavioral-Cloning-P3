@@ -1,91 +1,45 @@
-import csv
+import os
 import cv2
-from os import path
+import random
 import numpy as np
-import matplotlib.pyplot as plt
-# import pickle
-from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Dropout
+import pandas as pd
+from keras.models import Sequential, load_model
+from keras.layers import Flatten, Dense, Lambda
 from keras.layers.convolutional import Conv2D, Cropping2D
-from keras.layers.pooling import MaxPooling2D
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 
 
 def loadData(basePath):
-    """ Load the images and steering angles from the basePath
-        assuming the headline of the CSV file is removed (starting the image name)
-    :param basepath: base path which contains the csv file and IMG folder
-    :return: images, angles
-    """
-    lines = []
-    with open(path.join(basePath,'driving_log.csv')) as f:
-        content = csv.reader(f)
-        for line in list(content)[1:]:
-            lines.append(line)
-
-    return lines
+    ''' load data from csv
+    '''
+    fname = os.path.join(basePath, 'driving_log.csv')
+    samples = pd.read_csv(fname)
+    return samples
 
 
-def balance_data(samples, visulization_flag ,N=60, K=1,  bins=100):
-    """ Crop the top part of the steering angle histogram, by removing some images belong to those steering angels
+def balanceData(samples):
+    """ crop the top part of the steering angle histogram
 
-    :param images: images arrays
-    :param angles: angles arrays which
-    :param n:  The values of the histogram bins
-    :param bins: The edges of the bins. Length nbins + 1
-    :param K: maximum number of max bins to be cropped
-    :param N: the max number of the images which will be used for the bin
-    :return: images, angle
+        use histgram and find the max bins and cut to the number of second max one
     """
 
-    angles = []
-    for line in samples:
-        # print(line)
-        angles.append(float(line[3]))
+    # calc histgram
+    count, divs = np.histogram(samples.steering, bins=100)
 
-    n, bins, patches = plt.hist(angles, bins=bins, color= 'orange', linewidth=0.1)
-    angles = np.array(angles)
-    n = np.array(n)
+    # find the max and the secon max bins
+    idx = count.argsort()[::-1][:2]
+    maxIdx = idx[0]
+    maxN = count[idx[0]]
+    cutN = count[idx[1]]
+    
+    # get the subset with maximum histgram
+    maxSamples = samples[(samples.steering >= divs[maxIdx]) & (samples.steering < divs[maxIdx+1])]
 
-    idx = n.argsort()[-K:][::-1]    # find the largest K bins
-    del_ind = []                    # collect the index which will be removed from the data
-    for i in range(K):
-        if n[idx[i]] > N:
-            ind = np.where((bins[idx[i]]<=angles) & (angles<bins[idx[i]+1]))
-            ind = np.ravel(ind)
-            np.random.shuffle(ind)
-            del_ind.extend(ind[:len(ind)-N])
-
-    # angles = np.delete(angles,del_ind)
-    balanced_samples = [v for i, v in enumerate(samples) if i not in del_ind]
-    balanced_angles = np.delete(angles,del_ind)
-
-    plt.subplot(1,2,2)
-    plt.hist(balanced_angles, bins=bins, color= 'orange', linewidth=0.1)
-    plt.title('modified histogram', fontsize=20)
-    plt.xlabel('steering angle', fontsize=20)
-    plt.ylabel('counts', fontsize=20)
-
-    if visulization_flag:
-        plt.figure
-        plt.subplot(1,2,1)
-        n, bins, patches = plt.hist(angles, bins=bins, color='orange', linewidth=0.1)
-        plt.title('origin histogram', fontsize=20)
-        plt.xlabel('steering angle', fontsize=20)
-        plt.ylabel('counts', fontsize=20)
-        plt.show()
-
-        plt.figure
-        aa = np.append(balanced_angles, -balanced_angles)
-        bb = np.append(aa, aa)
-        plt.hist(bb, bins=bins, color='orange', linewidth=0.1)
-        plt.title('final histogram', fontsize=20)
-        plt.xlabel('steering angle', fontsize=20)
-        plt.ylabel('counts', fontsize=20)
-        plt.show()
-
-    return balanced_samples
+    # random select rows to drop
+    dropIdx = random.sample(list(maxSamples.index), maxN - cutN)
+    balanceSamples = samples.drop(dropIdx)
+    return balanceSamples
 
 
 def brightness_change(image):
@@ -142,25 +96,26 @@ def network_model():
     :return: designed network model
     """
     model = Sequential()
-    model.add(Lambda(lambda x: x / 127.5 - 1., input_shape=(160,320,3)))
-    model.add(Cropping2D(cropping=((70,25),(0,0))))
-    model.add(Conv2D(32, (3,3), activation='relu'))
-    model.add(MaxPooling2D())
-    model.add(Dropout(0.1))
+    model.add(Lambda(lambda x: x / 127.5 - 1., input_shape=(66,200,3)))
+    model.add(Conv2D(24, (5,5), strides=(2, 2), activation='relu'))
+    model.add(Conv2D(36, (5,5), strides=(2, 2), activation='relu'))
+    model.add(Conv2D(48, (5,5), strides=(2, 2), activation='relu'))
     model.add(Conv2D(64, (3,3), activation='relu'))
-    model.add(MaxPooling2D())
-    model.add(Dropout(0.1))
-    model.add(Conv2D(128, (3,3), activation='relu'))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(256, (3,3), activation='relu'))
-    model.add(MaxPooling2D())
+    model.add(Conv2D(64, (3,3), activation='relu'))
 
     model.add(Flatten())
-    model.add(Dense(120))
-    model.add(Dense(20))
+    model.add(Dense(100))
+    model.add(Dense(50))
+    model.add(Dense(10))
     model.add(Dense(1))
     return model
 
+def read_image(image_path):
+    img = cv2.imread("data/"+image_path)
+    img = img[...,::-1]     # change bgr to rgb
+    img = img[70:70+66,:,:]
+    img = cv2.resize(img, (200, 66))
+    return img
 
 def generator(samples, train_flag, batch_size=32):
     """
@@ -181,15 +136,21 @@ def generator(samples, train_flag, batch_size=32):
             for line in batch_samples:
                 angle = float(line[3])
                 c_imagePath = line[0].replace(" ", "")
-                c_image = cv2.imread("data/"+c_imagePath)
+                c_image = read_image(c_imagePath)
                 images.append(c_image)
                 angles.append(angle)
+
+                '''
+                cv2.imwrite("tmp.jpg", c_image)
+                print("write image of", c_imagePath)
+                exit()
+                '''
 
                 if train_flag:  # only add left and right images for training data (not for validation)
                     l_imagePath = line[1].replace(" ", "")
                     r_imagePath = line[2].replace(" ", "")
-                    l_image = cv2.imread("data/"+l_imagePath)
-                    r_image = cv2.imread("data/"+r_imagePath)
+                    l_image = read_image(l_imagePath)
+                    r_image = read_image(r_imagePath)
                     
                     images.append(l_image)
                     angles.append(angle + correction)
@@ -210,9 +171,9 @@ basePath = './data/'
 print('loading the data...')
 samples = loadData(basePath)
 
-# balance the data with smooth the histogram of steering angles
+# balance the data
 print('balance the data ...')
-samples = balance_data(samples, visulization_flag=False)
+samples = balanceData(samples)
 
 # split data into training and validation
 train_samples, validation_samples = train_test_split(samples, test_size=0.3)
@@ -222,15 +183,21 @@ train_generator = generator(train_samples, train_flag=True, batch_size=32)
 validation_generator = generator(validation_samples, train_flag=False, batch_size=32)
 
 # define the network model
-model = network_model()
+MODEL_FILE = 'model.h5'
+if path.isfile(MODEL_FILE):
+    print("load model form", MODEL_FILE)
+    model = load_model(MODEL_FILE)
+else:
+    print("create new model")
+    model = network_model()
 model.summary()
 
 nbEpoch = 4
 model.compile(loss='mse', optimizer='adam')
 
-history = model.fit_generator(train_generator, steps_per_epoch=len(train_samples)*12//32, epochs=nbEpoch, 
+history = model.fit_generator(train_generator, steps_per_epoch=len(train_samples)//32, epochs=nbEpoch, 
     validation_data=validation_generator, validation_steps=len(validation_samples)//32)
 
-model.save('model.h5')
+model.save(MODEL_FILE)
 
 
