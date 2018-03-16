@@ -65,7 +65,7 @@ Based on these parameters assumption, we can project the road view onto the came
 
 <img src="./examples/car3dview2.png" width="480" alt="car 3d view" />
 
-Car simulator records camera views shown in the following. The cross of two red lines are vanishing point of parallel lines.  They are all vanished at the same point, say (150, 60) in the captured images.  The scene above it (blue line) is assumed at infinity or sky which we are not interested.  The scene below the blue line is assumed on the same road plane, say y = -1.5M.  The assumption may introduce some mapping distorion but it should not affect our training a lot. 
+Car simulator records camera views shown in the following. The cross of two red lines are vanishing point of parallel lines.  They are all vanished at the same point, say (150, 60) in the captured images, in all three views.  The scene above it (blue line) is assumed at infinity or sky which we are not interested.  The scene below the blue line is assumed on the same road plane, say y = -1.5M.  The assumption may introduce some mapping distorion but it should not affect our training a lot. 
 
 <table border="1">
 <tr>
@@ -93,11 +93,27 @@ Based on the above assumption, we can estimate the x and y coordinates of the ob
 </tr>
 </table>
 
-After math reduction, we got a quite simple transformation formula:
+After math reduction, we get a quite simple transformation formula for mapping camera shift -0.9M, which map left camera view to center view.
 
-```math #yourmathlabel
-a + b = c
+```math
+x_{new} = \left \{
+  \begin{tabular}{cl}
+  1.2 x - 30, & for y > 60 \\
+  don't care, &  otherwises
+  \end{tabular}
 ```
+, where x, and y are the x- and y-coordinates in the captured view image, which range from (0, 0) to (300, 160).
+
+Similarly, the formula for mapping camera shift 0.9M, which map right camera view to center view.
+
+```math
+x_{new} = \left \{
+  \begin{tabular}{cl}
+  (x + 30) / 1.2, & for y > 60 \\
+  don't care, &  otherwises
+  \end{tabular}
+```
+
 
 ## Data Preprocessig and Augmenting
 
