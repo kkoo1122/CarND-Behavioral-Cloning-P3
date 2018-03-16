@@ -54,7 +54,7 @@ $ python drive.py model.h5
 
 ## Camera View and Perspective Model
 
-### 1. perspective view parameter assumption and transformation
+### 1. perspective view parameter assumption
 Car simulator will record three camera veiws: center, left, and right views, in the training mode.  But only center view is given in autonomous driving mode.   We can extend our training sets by transforming left and right views to center view based on perspective projection calculation.  However, we don't exactly know the camera positions and projection matrix so we must do some assumptiona and use some trick to estimate these parameters and transformation formula. 
 
 We used the bridge landscape shown in the following because this bridge edges are parallel straigt lines.  We assume the car width is average width 1.9M.  Comparing to car width, we can estimate the bridge width is about 7.6M.  We can assume the center camera is positioned at the center of the car. The left and right cameras should be on the side of the car.  Here, we asumme the left and right cameras are aparted from the center camera from 0.9M, roughlt the half width of car width.    The height of camera should be roughly the same as our eyes's height in driving. We assume the camera height is about 1.5M.  
@@ -80,6 +80,8 @@ Car simulator records camera views shown in the following. The cross of two red 
 </tr>
 </table>
 
+### 2. transformation for camera shift
+
 Based on the above assumption, we can estimate the x and y coordinates of the object and camera.  However, we still not know the z coordinate (z-depth) of them.   We apply the following tricks to estimate them. As shown in the following, we mark four landmarks.  These landmarks are easy to tracked in the projected center, left and right views.  Accoring to these corresponing points and perspective projection matrix, we can get the transform formula of the car horizontal shift. 
 
 <table border="1">
@@ -94,30 +96,86 @@ Based on the above assumption, we can estimate the x and y coordinates of the ob
 </table>
 
 After math reduction, we get a quite simple transformation formula for mapping camera shift -0.9M, which map left camera view to center view.
+<img src="./examples/eq1.png">
+, where x, and y are the x- and y-coordinates in the captured view image, which range from (0, 0) to (300, 160). Parameter &alpha; is found the linear regresssion fitting the above landmarks.  The &alpha; is found as 0.72. 
 
-$x_{new} = \left \{
-  \begin{tabular}{cl}
-  1.2 x - 30, & for y > 60 \\
-  don't care, &  otherwises
-  \end{tabular}
-$
-, where x, and y are the x- and y-coordinates in the captured view image, which range from (0, 0) to (300, 160).
+The following gives the examples to apply these formula to map the left and right camera view to the center camera position.
 
-Similarly, the formula for mapping camera shift 0.9M, which map right camera view to center view.
+<table border="1">
+<tr>
+<td><img src="./examples/left_0.jpg" width="300" alt="original left view" /></td>
+<td><img src="./examples/center_0.jpg" width="300" alt="original center view" /></td>
+<td><img src="./examples/right_0.jpg" width="300" alt="original right view" /></td>
+</tr>
+<tr>
+<td><center>left view</center></td>
+<td><center>center view</center></td>
+<td><center>right view</center></td>
+</tr>
+<tr>
+<td><img src="./examples/left_2.jpg" width="300" alt="mapped left view to center camera" /></td>
+<td><img src="./examples/center_0.jpg" width="300" alt="original center view" /></td>
+<td><img src="./examples/right_2.jpg" width="300" alt="mapped right view to center camera" /></td>
+</tr>
+<tr>
+<td><center>mapped left view to center camera</center></td>
+<td><center>original center view</center></td>
+<td><center>mapped right view to center camera</center></td>
+</tr>
+</table>
 
-$x_{new} = \left \{
-  \begin{tabular}{cl}
-  (x + 30) / 1.2, & for y > 60 \\
-  don't care, &  otherwises
-  \end{tabular}
-$
+### 3. transformation for camera view rotation
+
+The camera view will do horizontal translation while car or camera do a small angle translation.  It is useful for the following data augment.  We estimate the corresponding relationship between the translation scale and the rotation angle based the following captured image. The width 2m is got by comparing car width.  The depth 4m is got by the bridge width substracting the car trunk size.  We can get that translating 1 pixel is roughly to rotate 0.5 degress angle.   
+
+<img src="./examples/rotation.png" width="300" alt="camera rotation" />
 
 
-## Data Preprocessig and Augmenting
+## Data Preprocessig
 
 ### 1. data balance
 
+There are 8037 captured driving data.  Each drivng datum has center view, left view, right view, steering angle, throttle, and speed.   However, a lot of driving data are adjust driving forword with steering angle equal to zero.  It is not good for training because of data set bias.  To solve it, we calculate the histgram of the steering angle first; the we cut the number of the largest bins to the same number of the second largest bins.   The results show as follows:
 
+<table border="1">
+<tr>
+<td><img src="./examples/bias_hist.png" width="400"/></td>
+<td><img src="./examples/balance_hist.png" width="400"/></td>
+</tr>
+<tr>
+<td><center>before data balance</center></td>
+<td><center>after data balance</center></td>
+</tr>
+</table>
+
+### 2. view image cropping and resizing
+
+The size of the captured view image is 320 by 160.  The part above y=60 is infinity which we are not interested.  Even the part between y=60 and y=70 is quite far way distance which may not help a lot in training.  So we crop the image by the left-top point (0, 70) to right-bottom point (320, 136).  Then we resize it to 200 by 66 because the neural network input of nVidia architecture is 200 by 66 too.
+
+The following shows the cropped results.
+
+<table border="1">
+<tr>
+<td><img src="./examples/crop_region.jpg" width="480"/></td>
+<td><img src="./examples/crop_resize.jpg" width="300"/></td>
+</tr>
+<tr>
+<td><center>cropped region</center></td>
+<td><center>after cropped and resized</center></td>
+</tr>
+</table>
+ 
+
+<table border="1">
+<tr>
+<td><img src="./examples/bias_hist.png" width="400"/></td>
+<td><img src="./examples/balance_hist.png" width="400"/></td>
+</tr>
+<tr>
+<td><center>before data balance</center></td>
+<td><center>after data balance</center></td>
+</tr>
+</table>
 
 ### Model Architecture and Training Strategy
 
