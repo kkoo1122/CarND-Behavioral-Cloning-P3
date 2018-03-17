@@ -20,6 +20,26 @@ def loadData():
     samples = pd.read_csv(fname)
     return samples
 
+def smooth(x, N):
+    return np.convolve(x, np.ones((N,))/N, mode='same')
+
+
+def loadCapture(df):
+    ''' load image and steering data from csv
+    '''
+    files = os.listdir(CAPPATH)
+    files = sorted(files)
+    angles = []
+    for fname in files:
+        idx, angle = fname[:-4].split('_')
+        angles.append(float(angle))
+    angle_smooth = smooth(angles, 5)
+    for idx, fname in enumerate(files):
+        angle = angle_smooth[idx]
+        df = df.append({'center': fname, 'steering': angle}, ignore_index=True)
+    print(len(df))
+    return df
+
 def balanceData(samples):
     """ crop the top part of the steering angle histogram
 
@@ -39,8 +59,12 @@ def balanceData(samples):
     maxSamples = samples[(samples.steering >= divs[maxIdx]) & (samples.steering < divs[maxIdx+1])]
 
     # random select rows to drop
-    dropIdx = random.sample(list(maxSamples.index), maxN - cutN)
-    balanceSamples = samples.drop(dropIdx)
+    dropNum = maxN - 3 * cutN
+    if dropNum > 0:
+        dropIdx = random.sample(list(maxSamples.index), dropNum)
+        balanceSamples = samples.drop(dropIdx)
+    else:
+        balanceSamples = samples
     return balanceSamples
 
 def augmentBrightness(im):
@@ -127,6 +151,7 @@ def dataAugmentation(images, angles, augment):
             else:
                 image = augmentShadow(image)
 
+        '''        
         # shift & rotate
         if False and doAugment(augment):
             if doAugment(augment):
@@ -139,6 +164,7 @@ def dataAugmentation(images, angles, augment):
                 cam_degree = np.random.uniform(-10, 10)
                 image = augmentRotate(image, cam_degree)
                 angle -= 0.5 * cam_degree / 25
+        '''
 
         # after augmented, angle should not over the range (-1, 1)
         if angle >= -1 and angle <= 1:
@@ -199,6 +225,7 @@ def generator(samples, data_augment, batch_size=32):
                 images.append(c_image)
                 angles.append(angle)
 
+                '''
                 if data_augment:  
                     l_image = readImage(row.left.strip())
                     r_image = readImage(row.right.strip())
@@ -207,6 +234,7 @@ def generator(samples, data_augment, batch_size=32):
                     angles.append(angle + correction)
                     images.append(r_image)
                     angles.append(angle - correction)
+                '''
 
             augmented_images, augmented_angles = dataAugmentation(images, angles, data_augment)
             X_train = np.array(augmented_images)
@@ -221,6 +249,11 @@ print('loading the data...')
 # balance the data
 samples = balanceData(samples)
 print('balance the data ...')
+
+# balance the data
+samples = loadCapture(samples)
+samples = shuffle(samples)
+print('load capture ...')
 
 # split data into training and validation
 train_samples, validation_samples = train_test_split(samples, test_size=0.25)
@@ -244,7 +277,7 @@ model.summary()
 
 model.compile(loss='mse', optimizer='adam')
 
-nbEpoch = 100
+nbEpoch = 10
 for epoch in range(nbEpoch):
     print("epoch = {}/{}".format(epoch+1, nbEpoch))
     history = model.fit_generator(train_generator, steps_per_epoch=len(train_samples)//32, epochs=1, 
