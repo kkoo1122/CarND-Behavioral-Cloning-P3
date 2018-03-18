@@ -3,6 +3,8 @@ import base64
 from datetime import datetime
 import os
 import shutil
+import math
+import cv2
 
 import numpy as np
 import socketio
@@ -46,33 +48,57 @@ class SimplePIController:
 controller = SimplePIController(0.1, 0.002)
 set_speed = 9
 controller.set_desired(set_speed)
-
-
+MAX_SPEED = 12
+MIN_SPEED = 6
+telemetry_index = 0
+ 
 @sio.on('telemetry')
 def telemetry(sid, data):
+    global telemetry_index
     if data:
         # The current steering angle of the car
-        steering_angle = data["steering_angle"]
+        steering_angle = float(data["steering_angle"])
         # The current throttle of the car
-        throttle = data["throttle"]
+        throttle = float(data["throttle"])
         # The current speed of the car
-        speed = data["speed"]
+        speed = float(data["speed"])
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
+        
         image_array = np.asarray(image)
+        image_array = image_array[70:70+66,:]
+        image_array = cv2.resize(image_array, (200, 66))
+        # cv2.imwrite("tmp2.jpg", image_array)
+        # exit()
+
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
-        throttle = controller.update(float(speed))
+        target_speed = MAX_SPEED - (MAX_SPEED - MIN_SPEED) * math.sqrt(abs(steering_angle))
+        controller.set_desired(target_speed)
+        throttle = controller.update(speed)
+        if throttle < -0.4:
+            throttle += 0.4
+        elif throttle < 0:
+            throttle = 0
 
-        print(steering_angle, throttle)
+
+        # if telemetry_index < 37 * 3:
+        #     steering_angle = 0
+
         send_control(steering_angle, throttle)
 
-        # save frame
-        if args.image_folder != '':
-            timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
-            image_filename = os.path.join(args.image_folder, timestamp)
-            image.save('{}.jpg'.format(image_filename))
+        telemetry_index += 1
+        if telemetry_index % 3 == 0:
+            # I found image and data will repeat 3 times, so we only display or save image every three times
+            idx = telemetry_index // 3
+            print("{:04d}: ang={:.4f}, thr={:.4f}, spd={:.2f}".format(idx, steering_angle, throttle, speed))
+
+            # save frame
+            if args.image_folder != '' and idx < 10000:   # we only store the first 10000 images
+                fname = "{:06d}_{:.4f}.jpg".format(idx, steering_angle)
+                image_filename = os.path.join(args.image_folder, fname)
+                image.save(image_filename)
     else:
         # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
@@ -120,6 +146,7 @@ if __name__ == '__main__':
               ', but the model was built using ', model_version)
 
     model = load_model(args.model)
+    model.summary()
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
