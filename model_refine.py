@@ -30,6 +30,12 @@ def loadCapture(df):
     files = os.listdir(CAPPATH)
     files = sorted(files)
     angles = []
+
+    # just keep the same of the captured
+    df = shuffle(df)
+    n = len(files)
+    df = df[:n]
+
     for fname in files:
         idx, angle = fname[:-4].split('_')
         angles.append(float(angle))
@@ -37,7 +43,7 @@ def loadCapture(df):
     for idx, fname in enumerate(files):
         angle = angle_smooth[idx]
         df = df.append({'center': fname, 'steering': angle}, ignore_index=True)
-    print(len(df))
+    print("after captured length", len(df))
     return df
 
 def balanceData(samples):
@@ -59,7 +65,7 @@ def balanceData(samples):
     maxSamples = samples[(samples.steering >= divs[maxIdx]) & (samples.steering < divs[maxIdx+1])]
 
     # random select rows to drop
-    dropNum = maxN - 3 * cutN
+    dropNum = maxN - cutN
     if dropNum > 0:
         dropIdx = random.sample(list(maxSamples.index), dropNum)
         balanceSamples = samples.drop(dropIdx)
@@ -256,7 +262,7 @@ samples = shuffle(samples)
 print('load capture ...')
 
 # split data into training and validation
-train_samples, validation_samples = train_test_split(samples, test_size=0.25)
+train_samples, validation_samples = train_test_split(samples, test_size=0.05)
 print('split the data to train set={}, validate set={}'.format(
     len(train_samples), len(validation_samples)
 ))
