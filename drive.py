@@ -48,8 +48,12 @@ class SimplePIController:
 controller = SimplePIController(0.1, 0.002)
 set_speed = 9
 controller.set_desired(set_speed)
+
+# we dynamic adjust speed with the range from 6 to 12 
 MAX_SPEED = 12
 MIN_SPEED = 6
+
+# handy index for print
 telemetry_index = 0
  
 @sio.on('telemetry')
@@ -66,25 +70,24 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         
+        # crop image from (0, 70) to (136, 300) and resizing to (200, 66)
         image_array = np.asarray(image)
         image_array = image_array[70:70+66,:]
         image_array = cv2.resize(image_array, (200, 66))
-        # cv2.imwrite("tmp2.jpg", image_array)
-        # exit()
-
+ 
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
+        # dynamic adjust speed according its steering angle
         target_speed = MAX_SPEED - (MAX_SPEED - MIN_SPEED) * math.sqrt(abs(steering_angle))
         controller.set_desired(target_speed)
+
+        # we don't like to brake too offten, so we just do brake when throttle is less than -0.4
         throttle = controller.update(speed)
         if throttle < -0.4:
             throttle += 0.4
         elif throttle < 0:
             throttle = 0
 
-
-        # if telemetry_index < 37 * 3:
-        #     steering_angle = 0
 
         send_control(steering_angle, throttle)
 
@@ -94,8 +97,8 @@ def telemetry(sid, data):
             idx = telemetry_index // 3
             print("{:04d}: ang={:.4f}, thr={:.4f}, spd={:.2f}".format(idx, steering_angle, throttle, speed))
 
-            # save frame
-            if args.image_folder != '' and idx < 10000:   # we only store the first 10000 images
+            # save frame, we also store steering angle in the filename
+            if args.image_folder != '': 
                 fname = "{:06d}_{:.4f}.jpg".format(idx, steering_angle)
                 image_filename = os.path.join(args.image_folder, fname)
                 image.save(image_filename)

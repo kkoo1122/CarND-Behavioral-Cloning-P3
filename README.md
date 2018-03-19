@@ -6,15 +6,15 @@ Overview
 ---
 This repository contains project files for the Behavioral Cloning Project.
 
-This project used deep neural networks and convolutional neural networks to clone driving behavior. The model will output a steering angle to an autonomous vehicle.  The neural network architecture is based on nVidia paper (https://arxiv.org/abs/1604.07316) which train a CNN to map raw pixels from a single front-facing camera directly to steering commands.  It has proven to be successful in car self-driving enviroment so it should be proper in this project. 
+This project used deep neural networks and convolutional neural networks to clone driving behavior. The model will output the steering angles to drive an autonomous vehicle.  The neural network architecture is based on nVidia paper (https://arxiv.org/abs/1604.07316) which uses a CNN to map raw pixels from a single front-facing camera to steering commands.  This architecture has proven to be successful in car self-driving enviroment so it should be proper in this project. 
 
-We use Udacity car simulator to collect view image data of the center, left and right camera, while it also records the steering angle, throttle, and speed of the driving car at the same time.   We also did data balance and image augment to increase training data quality and quantity.  After trained, the model can drive the car automatically to run on the road.
+We use Udacity car simulator to collect view image data of the center, left and right cameras with the steering angle, throttle, and speed at the same time.   Data balance and augmentation are used to increase data quality of training.  After trained, the model can drive the autonomous car full rounds on both the track one and two.
 
 
 ## Project Goals
 * Use the simulator to collect data of good driving behavior
-* Preprocess and augment collected data
-* Build, a convolution neural network in Keras that predicts steering angles from images
+* Preprocess and augment on the collected data
+* Build a convolution neural network in Keras that predicts steering angles from images
 * Train and validate the model with a training and validation set
 * Test that the model successfully drives around track one without leaving the road
 * Summarize the results with a written report
@@ -304,7 +304,7 @@ The car turns on brake when throttle is negative.   However, we would not like t
 
 ### 1. training for track1
 
-It is not difficult to make car run full rounds of the first track after a few epoches training.  The following shows the result video.  Click it for viewing the [full video](https://youtu.be/EqeabxImtz0).
+It is not difficult to make car run full rounds of the first track after a few epoches training.  The following shows the result video.  Click the image for viewing the [full video](https://youtu.be/EqeabxImtz0).
 
 [![Car Self-Driving for Track1](./examples/track1_clip.gif)](https://youtu.be/EqeabxImtz0)  
 
@@ -320,7 +320,7 @@ I used another approach to collect driving data.  We had a trained model for sel
 4. train the model again
 5. goto step 1 to run the trained model on track2 again
 
-The following shows the result video.  Click it for viewing the [full video](https://youtu.be/GzPWI4F-pe0).
+The following shows the result video.  Click the image for viewing the [full video](https://youtu.be/GzPWI4F-pe0).
 
 [![Car Self-Driving for Track2](./examples/track2_clip.gif)](https://youtu.be/GzPWI4F-pe0)  
 

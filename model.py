@@ -28,7 +28,7 @@ def balanceData(samples):
     # calc histgram
     count, divs = np.histogram(samples.steering, bins=100)
 
-    # find the max and the secon max bins
+    # find the max and the second max bins
     idx = count.argsort()[::-1][:2]
     maxIdx = idx[0]
     maxN = count[idx[0]]
@@ -37,7 +37,7 @@ def balanceData(samples):
     # get the subset with maximum histgram
     maxSamples = samples[(samples.steering >= divs[maxIdx]) & (samples.steering < divs[maxIdx+1])]
 
-    # random select rows to drop
+    # random select rows to drop so that the number of the maximum row is eqault to the second one
     dropIdx = random.sample(list(maxSamples.index), maxN - cutN)
     balanceSamples = samples.drop(dropIdx)
     return balanceSamples
@@ -70,7 +70,7 @@ def augmentMirror(im):
 
 def augmentShift(im, camShift):
     '''
-        positive camShift is to shift right, steering angle is negative
+        positive camShift is to shift right, steering angle adjustment is negative
     '''
     p = -camShift * 72
     rows, cols, ch = im.shape
@@ -87,7 +87,7 @@ def augmentShift(im, camShift):
 def augmentRotate(im, camDegree):
     
     '''
-        positive camDegree is to turn right, steering angle is negative
+        positive camDegree is to turn right, steering angle adjustment is negative
     '''
     p = -int(camDegree * 2)
     im2 = np.zeros(im.shape, im.dtype)
@@ -100,7 +100,7 @@ def augmentRotate(im, camDegree):
 
     return im2
 
-def doAugment(augment):
+def needAugment(augment):
     return np.random.uniform() > 0.5 if augment else False
 
 def cropImage(im):
@@ -115,20 +115,20 @@ def dataAugmentation(images, angles, augment):
     for image, angle in zip(images, angles):
 
         # mirror
-        if doAugment(augment):
+        if needAugment(augment):
             image = augmentMirror(image)
             angle = -angle
 
         # brightness & shadow
-        if doAugment(augment):
-            if doAugment(augment):
+        if needAugment(augment):
+            if needAugment(augment):
                 image = augmentBrightness(image)
             else:
                 image = augmentShadow(image)
 
         # shift & rotate
-        if False and doAugment(augment):
-            if doAugment(augment):
+        if needAugment(augment):
+            if needAugment(augment):
                 # cam shift, max 1 meter
                 cam_shift = np.random.uniform(-1, 1)
                 image = augmentShift(image, cam_shift)
@@ -167,19 +167,13 @@ def create_model():
     return model
 
 def readImage(image_path):
-    if image_path[:3] == 'IMG':
-        fname = DATAPATH + image_path
-        # print("fname1", fname)
-    else:
-        fname = CAPPATH + image_path
-        # print("fname2", fname)
+    fname = DATAPATH + image_path
     im = np.array(Image.open(fname))
     return im
 
 def generator(samples, data_augment, batch_size=32):
 
     num_samples = len(samples)
-    # print("num_samples:", num_samples)
 
     # steering angle correction for left and right cameras
     correction = 0.2
@@ -243,12 +237,16 @@ model.summary()
 
 model.compile(loss='mse', optimizer='adam')
 
-nbEpoch = 100
+nbEpoch = 10
 for epoch in range(nbEpoch):
     print("epoch = {}/{}".format(epoch+1, nbEpoch))
     history = model.fit_generator(train_generator, steps_per_epoch=len(train_samples)//32, epochs=1, 
         validation_data=validation_generator, validation_steps=len(validation_samples)//32)
-    model.save('model5_{}.h5'.format(epoch))
+    
+    # save model for echo epoch for debugging
+    model.save('model_{}.h5'.format(epoch))
 
+# save and override the trained model
 model.save(MODEL_FILE)
+print("model {} is saved".format(MODEL_FILE))
 
