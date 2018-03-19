@@ -308,7 +308,55 @@ It is not difficult to make car run full rounds of the first track after a few e
 
 [![Car Self-Driving for Track1](./examples/track1_clip.gif)](https://youtu.be/EqeabxImtz0)  
 
+### 2. training for track2
 
-[full video](https://youtu.be/GzPWI4F-pe0).
+Track2 is much challedge for self-drivig.  There are a lot of shadows, quick turns, uphills and downhills.  Even we did data augment of track1 driving data in training, we still failed track2 on the first quick U-turn.   I thought more training driving data for track2 are needed.  However, I never thought I was a good game car driver and I had enough patient and skills to drive well through the full round of the track2 by keyboard control.  
 
-[![Car Self-Driving for Track1](./examples/track2_clip.gif)](https://youtu.be/GzPWI4F-pe0)  
+I used another approach to collect driving data.  We had a trained model for self-driving and could drive car on track2. So we could collect driving data of the track2 before it crashed. We just removed the incorrect or crashed frames of the collected data and added them into our training set.  Then, we trained the model again.  After trained, we used the new trained model to run the track2 again.  The car might (or might not) run a little farther than last time.  If it was, we could collect more driving data for training.   We repeated the following training cycle until the car learning the whole round trip.  
+
+1. run the trained model on track2 and collect the captured frames and steering angles
+2. remove or modify incorrect or crashed frames
+3. add the collected driving data into our training set
+4. train the model again
+5. goto step 1 to run the trained model on track2 again
+
+The following shows the result video.  Click it for viewing the [full video](https://youtu.be/GzPWI4F-pe0).
+
+[![Car Self-Driving for Track2](./examples/track2_clip.gif)](https://youtu.be/GzPWI4F-pe0)  
+
+
+### Discussions
+
+### 1. car stuck bug in the car simulator
+
+When I run the trained model on the track2, the car got stuck when its speed slow down sometimes.  The following show an example of car stuck.  It was on the downhill, steering angle was around 0 and throttle was above 15 and keeping raising because of PID controller.   I had no idea how it happened and how to resolve.  All I just did was quit and run the model and the simulator again.  
+
+<img src="./examples/car_stuck.png" width="600" alt="car stuck" />
+
+### 2. keeping car in the right lane
+
+There are two lanes in the track2.  The car should keep in the right lane by our driving experience.  However, our self-driving model doesn't attend to keep the car in the right lane.  There are two reasons.  First, we started our training data from track1, which only has one lane.  The model could not learn two or multiple lanes knowledge from it.   The other, even after including the track2 trained data, we did mirror data augmentation, which also reversed the left and the right lane sides.  Therefore, it is impractice to let the car to keep in right lane. 
+
+###  3. car swinging on the road
+
+Because of data bias balance, we cut most of car driving data with zero or very small steering angle.  It caused the model to drive the car in a swinging way.  We had tried to train the model more epoches, it could reduce swings a little in the track one.  However, the new model apted to be crashed easier in the track two. It may be because the model is more overfitted for track1 and cannot repsonse the quick turn road in track two.  
+
+After we added the track two data to train, the self-driving car became in a more swinging way in the track one but still can run full round without problem.      The result videos in the previous session came from the same model after trained both track one and track two data.  I thought it would be an open issue how to self-driving safely and smoothly without too much unnecessary swings. 
+
+###  4. data qualities in the collected data for track two
+
+We used the old trained model to run and collect the driving data of the track two.   The car may stay in the road but not drive elegantly in some cases.   We still add them to our training set.  That is, the model may learning an ugly way to keep the car staying in the road.  We believed the model would learn better if we gave more elegant driving data.   However, the model still learned how to drive the car on the road without crashed. 
+
+
+###  5. car response lag in recording videos
+
+The trained model coould drive full rounds both in the track one and track two.  However, when I started to record the video in my MacBook Air, the car was much easier to went outside track in the quick turns.  This is because the car simulator was realtime and our model took CPU to run the deep learning model and responding the correct steering angle.   When starting video recoding, it shared some CPU resource to record video and cause a very short time response lag.  These little lags might caused the car to turn too late in some quick turns of the track two.    After serveral trials, I sucessed to record a full round run of the track two.   I thought the model could drive the car more smoothly and safely when using a more powerful calculating machine.
+
+
+###  6. custom maps and car self-drivng championship
+
+This project is one of the most interestinig projects I have had.  However, only two track maps are not enough for me.  I think if it is possible to open a map editor for the car simulator.  If we have this map editor, a lot of interesting track map will be created in open source communities.   Then we may have more fun on them.   
+
+Besides, I think Udacity can hold a car self-drivng championship for all nanodegree students.  The whole new track map may be similar to track two but different.   Every one can summit a model to compete.  Then winner of the champoinship is to see who can run the full round safely and fastest.
+  
+
