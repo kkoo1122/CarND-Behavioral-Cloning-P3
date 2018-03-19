@@ -304,7 +304,7 @@ The car turns on brake when throttle is negative.   However, we would not like t
 
 ### 1. training for track1
 
-It is not difficult to make car run full rounds of the first track after a few epoches training.  The following shows the result video.  Click it for viewing the full video.
+It is not difficult to make car run full rounds of the first track after a few epoches training.  The following shows the result video.  Click it for viewing the [full video](https://youtu.be/62i2S9PcEuQ).
 
-[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](http://youtu.be/vt5fpE0bzSY)  
+[![Car Self-Driving for Track1](./examples/track1_clip.gif)](https://youtu.be/62i2S9PcEuQ)  
 
