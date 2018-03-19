@@ -113,9 +113,9 @@ The following gives the examples to apply these formula to map the left and righ
 <td><center>right view</center></td>
 </tr>
 <tr>
-<td><img src="./examples/left_2.jpg" width="300" alt="mapped left view to center camera" /></td>
+<td><img src="./examples/left_2.jpg" width="300" alt="move left camera to center position" /></td>
 <td><img src="./examples/center_0.jpg" width="300" alt="original center view" /></td>
-<td><img src="./examples/right_2.jpg" width="300" alt="mapped right view to center camera" /></td>
+<td><img src="./examples/right_2.jpg" width="300" alt="move right camera to center position" /></td>
 </tr>
 <tr>
 <td><center>mapped left view to center camera</center></td>
@@ -136,7 +136,7 @@ The image moves left if the camera direction turns right.   The translation of t
 
 ### 1. data balance
 
-There are 8037 captured driving data.  Each drivng datum has center view, left view, right view, steering angle, throttle, and speed.   However, a lot of driving data are adjust driving forword with steering angle equal to zero.  It is not good for training because of data set bias.  To solve it, we calculate the histgram of the steering angle first; the we cut the number of the largest bins to the same number of the second largest bins.   The results show as follows:
+There are 8037 captured driving data.  Each piece of drivng data has center view, left view, right view, steering angle, throttle, brake and speed.   The data is unbalanced because most of them are adjust driving forword with very small steering angles. To balance the data, we calculate the histgram of the steering angle first; then we cut the number of the largest bins to the same number of the second largest bins.  About 4000 driving set with very small steering angles are dropped out.  The histogram of the balance data set is shown below.
 
 <table border="1">
 <tr>
@@ -151,7 +151,7 @@ There are 8037 captured driving data.  Each drivng datum has center view, left v
 
 ### 2. view image cropping and resizing
 
-The size of the captured view image is 320 by 160.  The part above y=60 is infinity which we are not interested.  Even the part between y=60 and y=70 is quite far way distance which may not help a lot in training.  So we crop the image by the left-top point (0, 70) to right-bottom point (320, 136).  Then we resize it to 200 by 66 because the neural network input of nVidia architecture is 200 by 66 too.
+The size of the captured view image is 320 by 160.  The part above y=60 is infinity which are not very useful for car driving.  Even the part between y=60 and y=70 is located at quite far way distance which may not help a lot in training.  So we crop the image by the left-top point (0, 70) to right-bottom point (320, 136).  Then we resize it to 200 by 66 because the neural network input of nVidia architecture is 200 by 66 too.
 
 The following shows the cropped results.
 
@@ -168,12 +168,12 @@ The following shows the cropped results.
 
 ## Data Augmentation
 
-The following data augmentation are applied to increase training set and avoid overfitting.
+The following data augmentation methods are applied to increase training set quality and quantity. They also avoid overfitting in training model.
 
 ## 1. brightness adjustment
 
-We convert the RGB image into HSV and adjust V value randomly and convert back to RGB domain.  The following show the results.
-
+The RGB images are converted into HSV and adjust V value randomly.  Then they are converted back to RGB domain. An example is shown below.
+ 
 <table border="1">
 <tr>
 <td><img src="./examples/center_0.jpg" width="300"/></td>
@@ -187,7 +187,7 @@ We convert the RGB image into HSV and adjust V value randomly and convert back t
 
 ## 2. fake shadow
 
-Add adjust part of brightness to create fake shadow for training.  The following show the results.
+Modify part of brightness to generate fake shadow.  An example is shown below.
 
 <table border="1">
 <tr>
@@ -202,7 +202,7 @@ Add adjust part of brightness to create fake shadow for training.  The following
 
 ## 2. mirror augment
 
-Just mirror the captured image and inveres the steering angle.  The following show the results.
+Mirror the image and inveres the steering angle at the same time.  An example is shown below.
 
 <table border="1">
 <tr>
@@ -215,11 +215,11 @@ Just mirror the captured image and inveres the steering angle.  The following sh
 </tr>
 </table>
 
-## 3. left and right camera view augment
+## 3. left and right camera view augmentation
 
-Car driving simulator records center, left and right images at the same time.  We can applied left and right captured image to train model.   It is intuitive to steer right if the car is too left and steer left if the car is too right. But we don't have proper steering angle for then.  Proper steering angle may depends on the car speed and how quick to make the car to drive back to the center line.   
+The images of the left and the right cameras are used in data augmentation.  It is intuitive to steer right if the car is too left and steer left if the car is too right. But the proper steering angle may depends on the car speed and how quick to make the car to drive back to the center line.   
 
-To estimate the steering angle adjustment for the left and right view, we adopt the camera shift and camera rotation formula.   We knew the camera shift 0.9M in left and right view.  Then we apply camera rotation to let their pixel shifts are rought eqaul in the middle region of the scene.  Then we estimate the steering angle is about 5 degree adjustment for the left and right side view. This value is not far away from our driving experience.  In our steering angle parameter, the maximun is 1, which is corresponding to 25 degree.  So we got steering adjustmnet value 0.2 for the left and right view image.   They are shown in the following.
+To estimate the steering angle adjustment for the left and right view, we adopt the camera shift and camera rotation formula.   We knew the camera shift 0.9 meter in left and right view assumed in the previous session.  The camera rotation of the capture image was also applied to let their pixel shifts are roughly eqaul in the middle region of the scene.  Based on this trick, the steering angle is estimated about 5 degree adjustment for the left and right side view. This value is not far away from our driving experience.  The maximun of the steering angle parameter in the car simulator is 1, which is corresponding to 25 degree.  So we got steering adjustmnet value 0.2 for the left and right view image.   They are shown in the following.
 
 <table border="1">
 <tr>
@@ -236,7 +236,7 @@ To estimate the steering angle adjustment for the left and right view, we adopt 
 
 ## 4. camera shift augmentation
 
-Besides using the left and right camera image, we can apply camera shift formula to create augmentation image.  After apply camera shift transformation, we adjust steering angle correspondingly.  The following show an example.
+Besides using the real left and right camera image, we can apply camera shift formula discussed in the previous session to generate augmentation image.  The steering angles are adjusted correspondingly when generating augmentation image with camera shifting.  An example is shown below.
 
 <table border="1">
 <tr>
@@ -251,7 +251,7 @@ Besides using the left and right camera image, we can apply camera shift formula
 
 ## 5. camera rotation augmentation
 
-Based on the camera transformation discussed in the previous section, we can generate camera rotation augmentation by translating the capture image horizontally.   After apply camera shift transformation, we adjust steering angle correspondingly.  In order not to over-turning, we adjust steering with half of the turning angle.  The following show an example.
+The data augmentation with camera rotation horizontally are also generated based on the the camera transformation discussed in the previous section.   The steering angles are adjusted correspondingly when generating them.  In order not to over-steering, we only adjust steering angle with half of the camera rotation angle.  An example is shown below.
 
 <table border="1">
 <tr>
@@ -260,7 +260,7 @@ Based on the camera transformation discussed in the previous section, we can gen
 </tr>
 <tr>
 <td><center>center view</center></td>
-<td><center>camera turns left by 10 degree, and <br>steering angle is adjusted by 0.2</center></td>
+<td><center>car camera rotates left horizontally by 10 degree, and <br>steering angle is adjusted by 0.2</center></td>
 </tr>
 </table>
 
@@ -269,52 +269,49 @@ Based on the camera transformation discussed in the previous section, we can gen
 
 #### 1. The nVidia model architecture has been employed
 
-The nVidia model architecture is adopted.  The following shows the network, including a input layer, 5 convolutional layers, and 3 fully connected layers.  The RELU activation function is used in all layers except the last layer use sigmoid.  No dropout layers are used.   We used Tensorflow and Keras framework to implement this model.
+The nVidia model architecture is adopted, including a input layer, 5 convolutional layers, and 3 fully connected layers.  The RELU activation functions are used in all layers except the last layer uses sigmoid.  No dropout layers are used.   We used Tensorflow and Keras framework to implement this model.
 
 <img src="./examples/nvidia.png" width="480" alt="nvidia architecture" />
 (Sources: [Nvidia, MitTechReview, Nvidia Blog](https://devblogs.nvidia.com/deep-learning-self-driving-cars/))
 
 #### 2. Methods to reduce overfitting in the model
 
-The model didn't use dropout layers in order to reduce overfitting. Instead, we used a lot of data augmentation to avoid overfitting.
+No dropout layers are used in the model. Instead, we applied a lot of data augmentation to avoid overfitting.
 
 #### 3. Model parameter tuning
 
-The model used an adam optimizer and mse loss function.  The learning rate was not tuned manually.
+The model used an adam optimizer and mse loss function.  The learning rate was not tuned manually.  Most of training hyperparameters used default values.
 
 #### 4. Appropriate training data
 
-There are about eight thousands pieces of driving data, including center image, left image, right image, steering, throttle, brake, and speed values.   
+There are about eight thousands pieces of driving data, including center image, left image, right image, steering, throttle, brake, and speed values.   Only steering value was trained by giving the input images. Throttle value was automatically controlled by a PID controller.  Brake and speed value was not used in the training processs.  
 
-In this project, our model only trained steering value accoring the input image.  Throttle value is automatically adjust by a PID controller.  Brake and speed value is not used in the training processs.  
+The original driving data were unbalanced because of a lot of data have very small steering angle. We did 
+data balance by the method described in the previous session.  After data balance, the one fourth of the data are split as our validation data.  Only the center images of them are used for validation. 
 
-A lot of data is driving forward with steering = 0, which will cause training bias.  We did 
-data balance by cutting the number of them.  After data balance, there are about four thousands data set. The 25% of the data are split as our validation data.  Only the center image is used for our validation.  The left and right can be used as data augmention but not proper for data validation. 
-
-The rest 75% of the data are used for training.   Besides the center image, the left and right image are used in training as discussed in the previous data augmentation section. Data augmentation methods, such as brightness, shadow, mirror, cam shift, and cam rotation, are applied to the center, left, right images randomly.  We used Keras fit_generator function to generate these augmetation data dynamically.
+The rest three fourths of the data are used for training.   Besides the center image, the left and right image are also used in training as discussed in the data augmentation section. Data augmentation methods, such as brightness, shadow, mirror, cam shift, and cam rotation, are applied to the center, left, right images randomly.  We used Keras fit_generator function to generate these augmetation data dynamically.
 
 #### 5. Throttle and brake strategy
 
-We didn't train the throttle value. Instead, we used a PID controller to controll throttle value given a speed.  The speed may varies during running.  When the car is running straight, say steering angle is 0 or small, we would like run fast.  On the other side, when the can is turning,say steering angle is large, we would like run slow.  We dynamic adjust speed from the maximum speed 12 MPH to the minimum speed 6 MPH.
+Throttle value was not trained directly. A PID controller was applied to controll throttle value at a given speed.  The speed may varies during running.  When the car was running straight, say steering angle was 0 or very small, we would like run faster.  On the other side, when the car was turning, say steering angle was large, we would like run slower.  We dynamic adjusted speed from the maximum speed 12 MPH to the minimum speed 6 MPH according to steering angle.
 
-The car turns on brake when throttle is negative.   However, we would not like to brake the car too often.  We did a littfle adjustment, when the throttle is a little below 0, say betwteen 0 and -0.4, just let throttle be 0.   When the throttle is below -0.4, the brake turn on by letting throttle be (throttle+0.4)
+The car started to brake when throttle is negative.   However, we would not like to brake the car too often.  When the throttle was a little below 0, say betwteen 0 and -0.4, we just let throttle be 0.   Only when the throttle is below -0.4, we started to brake by letting the throttle value be (throttle+0.4).
 
 ### Training processing and results
 
-### 1. training for track1
+### 1. training for track one
 
-It is not difficult to make car run full rounds of the first track after a few epoches training.  The following shows the result video.  Click the image for viewing the [full video](https://youtu.be/EqeabxImtz0).
+It did not have much difficulty to make car run the full round of the first track after a few epoches training.  The following shows the result video.  Click the image for viewing the [full video](https://youtu.be/EqeabxImtz0).
 
 [![Car Self-Driving for Track1](./examples/track1_clip.gif)](https://youtu.be/EqeabxImtz0)  
 
-### 2. training for track2
+### 2. training for track two
 
-Track2 is much challedge for self-drivig.  There are a lot of shadows, quick turns, uphills and downhills.  Even we did data augment of track1 driving data in training, we still failed track2 on the first quick U-turn.   I thought more training driving data for track2 are needed.  However, I never thought I was a good game car driver and I had enough patient and skills to drive well through the full round of the track2 by keyboard control.  
+Track two is much challedge for autonomous self-drivig.  There are a lot of shadows, quick turns, uphills and downhills.  Even we did much data augment of the track one driving data in training, we still failed track two on the first quick U-turn.   I thought more training driving data for track two were needed.  However, I didn't thought I was a good game car driver and I had enough patient or skills to drive well through the full round of the track two by keyboard control.  
+I used another approach to collect driving data for the track two.  We had a workable model based on the track one data.  Then this model can be used to drive the car on the track two.  Some driving could be collected before it crashed. We just removed or modified the incorrect or crashed frames of the data and added them into our training set.  Then, we trained the model again.  After trained, the new trained model were used to run the track two again.  The car might (or might not) run a little farther than last time.  If it was, we could collect more driving data for next training.   We repeated this training cycle until the car learning the whole round trip as describled in the following.  
 
-I used another approach to collect driving data.  We had a trained model for self-driving and could drive car on track2. So we could collect driving data of the track2 before it crashed. We just removed the incorrect or crashed frames of the collected data and added them into our training set.  Then, we trained the model again.  After trained, we used the new trained model to run the track2 again.  The car might (or might not) run a little farther than last time.  If it was, we could collect more driving data for training.   We repeated the following training cycle until the car learning the whole round trip.  
-
-1. run the trained model on track2 and collect the captured frames and steering angles
-2. remove or modify incorrect or crashed frames
+1. run the trained model on track two and collect the captured frames and steering angles
+2. remove or modify the incorrect or crashed frames
 3. add the collected driving data into our training set
 4. train the model again
 5. goto step 1 to run the trained model on track2 again
@@ -328,34 +325,34 @@ The following shows the result video.  Click the image for viewing the [full vid
 
 ### 1. car stuck bug in the car simulator
 
-When I run the trained model on the track2, the car got stuck when its speed slow down sometimes.  The following show an example of car stuck.  It was on the downhill, steering angle was around 0 and throttle was above 15 and keeping raising because of PID controller.   I had no idea how it happened and how to resolve.  All I just did was quit and run the model and the simulator again.  
+When I run the trained model on the track two, the car got stuck sometimes when its speed slowed down.  An example of car stuck is captured as the below image.  This example happened on the downhill, steering angle was around 0 and throttle was above 15 and keeping raising because of PID controller.  Others might happen in different conditions.  I had no idea how it happened and how to resolve.  All I did was just quit and run the model and the simulator again.  
 
 <img src="./examples/car_stuck.png" width="600" alt="car stuck" />
 
 ### 2. keeping car in the right lane
 
-There are two lanes in the track2.  The car should keep in the right lane by our driving experience.  However, our self-driving model doesn't attend to keep the car in the right lane.  There are two reasons.  First, we started our training data from track1, which only has one lane.  The model could not learn two or multiple lanes knowledge from it.   The other, even after including the track2 trained data, we did mirror data augmentation, which also reversed the left and the right lane sides.  Therefore, it is impractice to let the car to keep in right lane. 
+There are two lanes in the track two.  The car should keep in the right lane by our driving experience.  However, our self-driving model doesn't attend to keep the car in the right lane.  There are two reasons.  First, we started our training data from track one, which only has one lane.  The model could not learn two or multiple lanes knowledge from it.   The other, even after including the track two trained data, we did mirror data augmentation, which also reversed the left and the right lane sides.  Therefore, it is much difficult to let the car to keep in right lane.   Our model might drive the car in both two lanes in the track two.
 
 ###  3. car swinging on the road
 
-Because of data bias balance, we cut most of car driving data with zero or very small steering angle.  It caused the model to drive the car in a swinging way.  We had tried to train the model more epoches, it could reduce swings a little in the track one.  However, the new model apted to be crashed easier in the track two. It may be because the model is more overfitted for track1 and cannot repsonse the quick turn road in track two.  
+Because of data balance processing, we cut most of car driving data with zero or very small steering angle.  It might caused the model to drive the car in a swinging way because the car apted to turn even in the straight road.  We tried to train the model with much more epoches, it could reduce swings a little in the track one.  However, the new trained model apted to be crashed much easier in the track two than the original one. It may be because the model was more overfitted for track one and cannot response the quick turn road in track two.  
 
-After we added the track two data to train, the self-driving car became in a more swinging way in the track one but still can run full round without problem.      The result videos in the previous session came from the same model after trained both track one and track two data.  I thought it would be an open issue how to self-driving safely and smoothly without too much unnecessary swings. 
+After we added the track two data to train, the car can run safely on the track two.  However, the self-driving car became more swinging run in the track one.  But the trained model can run full round of both track one and two without problems.   The result videos shown above came from the same trained model of both track one and track two data.  I thought it would be an open issue how to self-driving safely but smoothly without too much unnecessary swings. 
 
 ###  4. data qualities in the collected data for track two
 
-We used the old trained model to run and collect the driving data of the track two.   The car may stay in the road but not drive elegantly in some cases.   We still add them to our training set.  That is, the model may learning an ugly way to keep the car staying in the road.  We believed the model would learn better if we gave more elegant driving data.   However, the model still learned how to drive the car on the road without crashed. 
+We used the model based on the track one to run and collect the driving data of the track two.   The car may stay in the road but not drive elegantly in some cases.   These data are still to be added into our training set.  That is, the model may learning an ugly way to keep the car staying in the road.  We believed the model would learn better if we gave more elegant driving data.   However, the model still learned how to drive the car on the road without crashed successfully. 
 
 
 ###  5. car response lag in recording videos
 
-The trained model coould drive full rounds both in the track one and track two.  However, when I started to record the video in my MacBook Air, the car was much easier to went outside track in the quick turns.  This is because the car simulator was realtime and our model took CPU to run the deep learning model and responding the correct steering angle.   When starting video recoding, it shared some CPU resource to record video and cause a very short time response lag.  These little lags might caused the car to turn too late in some quick turns of the track two.    After serveral trials, I sucessed to record a full round run of the track two.   I thought the model could drive the car more smoothly and safely when using a more powerful calculating machine.
+The trained model could drive full rounds both in the track one and track two.  However, when I started to record the video in my MacBook Air, the car was much easier to went outside track in the quick turns.  This is because the car simulator controller was realtime. Our model took CPU to run the deep learning network and responding the correct steering angle in time.   When starting video recoding, it shared some CPU resources to record video and cause a very short response lag.  These little lags might caused the car to turn too a little late in some cases of the track two.    After serveral recording trials, I sucessed to record a full round run of the track two.   I thought the model could drive the car more smoothly, quickly and safely when using a more powerful calculating machine.
 
 
 ###  6. custom maps and car self-drivng championship
 
-This project is one of the most interestinig projects I have had.  However, only two track maps are not enough for me.  I think if it is possible to open a map editor for the car simulator.  If we have this map editor, a lot of interesting track map will be created in open source communities.   Then we may have more fun on them.   
+This project is one of the most interestinig projects I have had.  However, only two track maps are not enough for us.  I think if it is possible to open a map editor for the car simulator.  If the map editor is open, I believe a lot of interesting track map will be created.   We may have much more fun on them.   
 
-Besides, I think Udacity can hold a car self-drivng championship for all nanodegree students.  The whole new track map may be similar to track two but different.   Every one can summit a model to compete.  Then winner of the champoinship is to see who can run the full round safely and fastest.
+Besides, I think Udacity can hold a car self-drivng championship for all nanodegree students.  A whole new track map is created for it.   Every one can summit a model to compete.  Then winner of the champoinship is to see who can run the full round safely and fastest.
   
 
