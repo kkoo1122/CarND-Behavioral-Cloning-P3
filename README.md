@@ -4,9 +4,9 @@
 
 Overview
 ---
-This repository contains project files for the Behavioral Cloning Project.
+This repository contains project files for the [Behavioral Cloning Project](https://github.com/udacity/CarND-Behavioral-Cloning-P3).
 
-This project used deep neural networks and convolutional neural networks to clone driving behavior. The model will output the steering angles to drive an autonomous vehicle.  The neural network architecture is based on nVidia paper (https://arxiv.org/abs/1604.07316) which uses a CNN to map raw pixels from a single front-facing camera to steering commands.  This architecture has proven to be successful in car self-driving enviroment so it should be proper in this project. 
+This project used deep neural networks and convolutional neural networks to clone driving behavior. The model will output the steering angles to drive an autonomous vehicle.  The neural network architecture is based on [nVidia paper](https://arxiv.org/abs/1604.07316) which uses a CNN to map raw pixels from a single front-facing camera to steering commands.  This architecture has proven to be successful in car self-driving enviroment so it should be proper in this project. 
 
 We use Udacity car simulator to collect view image data of the center, left and right cameras with the steering angle, throttle, and speed at the same time.   Data balance and augmentation are used to increase data quality of training.  After trained, the model can drive the autonomous car full rounds on both the track one and two.
 
@@ -25,12 +25,10 @@ We use Udacity car simulator to collect view image data of the center, left and 
 * model.h5: containing a trained convolution neural network 
 * README.md: summarizing the results
 * enviroment.yml and enviroment-gpu.yml: enviroment build script
-* drive1.mp4: the video of the first track run
-* drive2.mp4: the video of the second track run
 
 ## Code Excution
 ### 1. enviroment
-I trained model on Ubuntu 14/GTX 1080 and run car simulator on Mac OSX.  To make sure these two platforms have same software version and binary compatible, I used enviroment.yml and enviroment-gpu.yml to create my training and running environment by executing
+The model was trained on Ubuntu 14/GTX 1080 and driving car by the simulator on Mac OSX.  These two platforms have same software version, binary compatible by the conda enviroment.yml and enviroment-gpu.yml scripts.  The environment is created by executing
 ```sh
 $ conda env create -f enviroment.yml 
 ```
@@ -41,31 +39,31 @@ $ conda env create -f enviroment-gpu.yml
 ```
 
 ### 2. training the model
-I used Keras to build deep neural networks.  To train the model, please place collected data under ./data/ directory and ./data/driving_log.csv should exist.  Then train the model by executing
+Tensorflow and Keras platforms are used to build deep neural networks.  The training data are needed to be download manually or be collected by the car simulator.  The collected driving data are put under ./data/ directory and ./data/driving_log.csv should exist.  The model is started to train by executing
 ```sh
 $ python model.py
 ```
 
-### 3. car self-driving automatically
-Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
+### 3. drive a autonomous car by the model
+The car can be driven autonomously around the track in the car simulator by executing 
 ```sh
 $ python drive.py model.h5
 ```
 
-## Camera View and Perspective Model
+## Computer Graphics Model for Camera View
 
-### 1. perspective view parameter assumption
-Car simulator will record three camera veiws: center, left, and right views, in the training mode.  But only center view is given in autonomous driving mode.   We can extend our training sets by transforming left and right views to center view based on perspective projection calculation.  However, we don't exactly know the camera positions and projection matrix so we must do some assumptiona and use some trick to estimate these parameters and transformation formula. 
+### 1. assumptions for perspective view parameters 
+The car simulators record three camera veiws: center, left, and right views, in the training mode.  Only the center view is given in autonomous driving mode.   We can extend our training sets by transforming left and right views to center view based on perspective projection modification.  But we don't have the exact camera positions and projection matrix of them.  We made some assumptions and adopted some tricks to estimate these parameters and projection formula. 
 
-We used the bridge landscape shown in the following because this bridge edges are parallel straigt lines.  We assume the car width is average width 1.9M.  Comparing to car width, we can estimate the bridge width is about 7.6M.  We can assume the center camera is positioned at the center of the car. The left and right cameras should be on the side of the car.  Here, we asumme the left and right cameras are aparted from the center camera from 0.9M, roughlt the half width of car width.    The height of camera should be roughly the same as our eyes's height in driving. We assume the camera height is about 1.5M.  
+The bridge landscape shown in the following were used because they are parallel straigt lines in the scene.  Th car width is assumed as the average width 1.9 meters.  Comparing to the car width, the bridge width is estimated about 7.6 meters.  The center camera is assumed to position at the center of the car. The left and right cameras are on the side of the car and assumed to be aparted from the center camera from 0.9 meters.    The height of camera is roughly the same as our eyes's height in driving, about 1.5 meter.  
 
 <img src="./examples/car_bridge.png" width="480" alt="car bridge" />
 
-Based on these parameters assumption, we can project the road view onto the camera screen shown in the following.   We let the y-position of the camera be zero for convenience.  So the road is on the plane at y = -1.5M.    We also let the x-position of the center camera be zero so the x-poistion of the left camera and right camera are -0.9M and 0.9M, respectively. 
+Based on these assumption, the road views are projected onto the camera screen illustrated in the following.   The y-positions of the camera are set to be zero for convenience.  Therefore, the road is on the plane at y = -1.5 meter.    The x-position of the center camera is set to be zero, and the x-poistions of the left camera and right camera are -0.9 meter and 0.9 meter, respectively. 
 
 <img src="./examples/car3dview2.png" width="480" alt="car 3d view" />
 
-Car simulator records camera views shown in the following. The cross of two red lines are vanishing point of parallel lines.  They are all vanished at the same point, say (150, 60) in the captured images, in all three views.  The scene above it (blue line) is assumed at infinity or sky which we are not interested.  The scene below the blue line is assumed on the same road plane, say y = -1.5M.  The assumption may introduce some mapping distorion but it should not affect our training a lot. 
+The center, left and right camera views recorded by the car simulator are shown in the following. The cross of two red lines are the vanishing point of parallel lines.  They are all vanished at the same point, say (160, 60) in all our captured images.  The scene above the blue line is infinity or sky which we are not interested for car driving.  The scene below the blue line is the road and assumed at the same plane, say y = -1.5 meter.  The assumption may introduce some distorion but it works in most cases. 
 
 <table border="1">
 <tr>
@@ -82,7 +80,7 @@ Car simulator records camera views shown in the following. The cross of two red 
 
 ### 2. transformation for camera shift
 
-Based on the above assumption, we can estimate the x and y coordinates of the object and camera.  However, we still not know the z coordinate (z-depth) of them.   We apply the following tricks to estimate them. As shown in the following, we mark four landmarks.  These landmarks are easy to tracked in the projected center, left and right views.  Accoring to these corresponing points and perspective projection matrix, we can get the transform formula of the car horizontal shift. 
+Based on these assumption, we have the x and y coordinates of the object and camera.  We need furthur to estimate the z coordinate (z-depth) for projection.   The tricks of corresponding landmarks are used to estimate them.   These landmarks marked in the following images are easy to tracked in the all three views.  z-depth and the projection matrix are calculated accoring to these corresponing points. 
 
 <table border="1">
 <tr>
@@ -95,13 +93,13 @@ Based on the above assumption, we can estimate the x and y coordinates of the ob
 </tr>
 </table>
 
-After math reduction, we get a quite simple transformation formula for mapping camera shift -0.9M, which map left camera view to center view.
+After math reduction and some linear regression, A quite simple transformation formula for the camera shift.
 
 <img src="./examples/eq1.png">
 
 , where x, and y are the x- and y-coordinates in the captured view image, which range from (0, 0) to (300, 160). Parameter &alpha; is found the linear regresssion fitting the above landmarks.  The &alpha; is found as 0.72. 
 
-The following gives the examples to apply these formula to map the left and right camera view to the center camera position.  After shifting the left and right camera view to the center position, the transformed images are quite matched to the center image. 
+The following gives the examples to apply these formula to map the left and right camera view to the center camera position. That is, shift the left camera view by 0.9 meter and the right one by -0.9 meter.  These shifting transforms to make these images viewed similarily at the center position.   We can compare them to the real center images, and they are quite matched. 
 
 <table border="1">
 <tr>
@@ -128,7 +126,8 @@ The following gives the examples to apply these formula to map the left and righ
 
 ### 3. transformation for camera view rotation
 
-The camera view will do horizontal translation while car or camera do a small angle translation.  It is useful for the following data augment.  We estimate the corresponding relationship between the translation scale and the rotation angle based the following captured image. The width 2m is got by comparing car width.  The depth 4m is got by the bridge width substracting the car trunk size.  We can get that translating 1 pixel is roughly to rotate 0.5 degress angle.   
+The image moves left if the camera direction turns right.   The translation of the images are used for data augmentation for a small camera view angle rotation horizontally.
+ The corresponding relationship between the image translation and the camera rotation angle are estimated by using the below image. The width 2 meters is got by comparing with car width.  The depth 4m is got by the bridge width substracting the car trunk size.  The relationship that translating 1 pixel is roughly to rotate 0.5 degress angle is got.
 
 <img src="./examples/rotation.png" width="300" alt="camera rotation" />
 
