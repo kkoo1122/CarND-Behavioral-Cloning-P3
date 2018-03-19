@@ -11,7 +11,6 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 
 DATAPATH = './data/'
-CAPPATH = './capture/'
 
 def loadData():
     ''' load image and steering data from csv
@@ -73,7 +72,7 @@ def augmentShift(im, camShift):
     '''
         positive camShift is to shift right, steering angle is negative
     '''
-    p = camShift * 72
+    p = -camShift * 72
     rows, cols, ch = im.shape
     pts1 = np.float32([[0,0],[300,0],[0,100]])
     pts2 = np.float32([[0,0],[300,0],[p,100]])
@@ -249,7 +248,7 @@ for epoch in range(nbEpoch):
     print("epoch = {}/{}".format(epoch+1, nbEpoch))
     history = model.fit_generator(train_generator, steps_per_epoch=len(train_samples)//32, epochs=1, 
         validation_data=validation_generator, validation_steps=len(validation_samples)//32)
-    model.save('model3_{}.h5'.format(epoch))
+    model.save('model5_{}.h5'.format(epoch))
 
 model.save(MODEL_FILE)
 

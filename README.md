@@ -292,6 +292,19 @@ In this project, our model only trained steering value accoring the input image.
 A lot of data is driving forward with steering = 0, which will cause training bias.  We did 
 data balance by cutting the number of them.  After data balance, there are about four thousands data set. The 25% of the data are split as our validation data.  Only the center image is used for our validation.  The left and right can be used as data augmention but not proper for data validation. 
 
-The rest 75% of the data are used for training.   Besides the center image, the left and right image are used in training as discussed in the previous data augmentation section.  
-Data augmentation methods, such as brightness, shadow, mirror, cam shift, and cam rotation, are applied to the center, left, right images randomly.  We used Keras fit_generator function to generate these augmetation data dynamically.
+The rest 75% of the data are used for training.   Besides the center image, the left and right image are used in training as discussed in the previous data augmentation section. Data augmentation methods, such as brightness, shadow, mirror, cam shift, and cam rotation, are applied to the center, left, right images randomly.  We used Keras fit_generator function to generate these augmetation data dynamically.
+
+#### 5. Throttle and brake strategy
+
+We didn't train the throttle value. Instead, we used a PID controller to controll throttle value given a speed.  The speed may varies during running.  When the car is running straight, say steering angle is 0 or small, we would like run fast.  On the other side, when the can is turning,say steering angle is large, we would like run slow.  We dynamic adjust speed from the maximum speed 12 MPH to the minimum speed 6 MPH.
+
+The car turns on brake when throttle is negative.   However, we would not like to brake the car too often.  We did a littfle adjustment, when the throttle is a little below 0, say betwteen 0 and -0.4, just let throttle be 0.   When the throttle is below -0.4, the brake turn on by letting throttle be (throttle+0.4)
+
+### Training processing and results
+
+### 1. training for track1
+
+It is not difficult to make car run full rounds of the first track after a few epoches training.  The following shows the result video.  Click it for viewing the full video.
+
+[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](http://youtu.be/vt5fpE0bzSY)  
 
